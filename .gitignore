@@ -1,0 +1,22 @@
+# Environnement virtuel
+.venv/
+
+# Dataset et modèles (trop lourds pour git)
+src/dataset/
+src/models/
+
+# Notebooks exécutés
+src/notebooks/*_executed.ipynb
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db

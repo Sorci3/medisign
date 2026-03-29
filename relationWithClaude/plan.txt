@@ -1,0 +1,70 @@
+ Summary of the plan:
+
+  Notebook 1 — notebooks/01_preprocessing.ipynb (Tasks 2–4)
+  - Explores class distribution and frame lengths
+  - Removes 4 corrupt instances (T=0)
+  - Converts skeleton keypoints → 3-channel Gaussian heatmaps (3, T=32, H=64, W=64) using body + left/right hands
+  (face's 478 landmarks are excluded to keep input compact)
+  - 4× augmentation per training sample: original + horizontal flip + temporal flip + jitter
+  - Saves X_train.npy, y_train.npy, X_test.npy, y_test.npy to src/dataset/preprocessed/
+
+  Notebook 2 — notebooks/02_i3d_training.ipynb (Tasks 5–8)
+  - Custom PoseHeatmapDataset with WeightedRandomSampler to address severe class imbalance
+  - Full Inception-I3D architecture (Unit3D → InceptionModule → InceptionI3D)
+  - Training: Adam + ReduceLROnPlateau + early stopping + class-weighted cross-entropy
+  - Evaluation: accuracy, macro-F1, per-class classification report, confusion matrix
+  - save_model() / load_model() functions + inference example
+
+
+
+   notebooks/01_preprocessing.ipynb — 12 cells
+
+  ┌──────┬────────────────────────────────────────────────────┐
+  │ Cell │                      Content                       │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 1    │ Imports, paths, target signs                       │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 2    │ Load instances, class distribution plot            │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 3    │ Frame length stats and histogram                   │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 4    │ Skeleton keypoint visualizer                       │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 5    │ Remove 4 bad instances (T=0)                       │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 6    │ resample_sequence — temporal resampling            │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 7    │ keypoints_to_heatmap + instance_to_tensor          │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 8    │ 4 augmentation functions                           │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 9    │ Load official train/test splits                    │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 10   │ Build augmented training tensors (4× augmentation) │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 11   │ Build test tensors (no augmentation)               │
+  ├──────┼────────────────────────────────────────────────────┤
+  │ 12   │ Save to src/dataset/preprocessed/                  │
+  └──────┴────────────────────────────────────────────────────┘
+
+  notebooks/02_i3d_training.ipynb — 14 cells
+
+  ┌───────┬─────────────────────────────────────────────────────────────┐
+  │ Cell  │                           Content                           │
+  ├───────┼─────────────────────────────────────────────────────────────┤
+  │ 1-3   │ Setup, PoseHeatmapDataset, weighted sampler                 │
+  ├───────┼─────────────────────────────────────────────────────────────┤
+  │ 4-6   │ Unit3D → InceptionModule → InceptionI3D                     │
+  ├───────┼─────────────────────────────────────────────────────────────┤
+  │ 7-10  │ Loss/optimizer, train/eval functions, training loop, curves │
+  ├───────┼─────────────────────────────────────────────────────────────┤
+  │ 11-12 │ Test evaluation, confusion matrix                           │
+  ├───────┼─────────────────────────────────────────────────────────────┤
+  │ 13    │ save_model / load_model                                     │
+  ├───────┼─────────────────────────────────────────────────────────────┤
+  │ 14    │ predict_sign inference example                              │
+  └───────┴─────────────────────────────────────────────────────────────┘
+
+  To use: Open the notebooks in Jupyter, run notebook 1 first (it generates the preprocessed .npy files), then run
+  notebook 2 to train the model. Note that training on CPU will be slow — the first run of notebook 1 (heatmap
+  generation) will also take several minutes.

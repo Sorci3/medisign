@@ -1,0 +1,12 @@
+pandas
+requests
+lsfb_dataset
+pip-system-certs
+torch
+torchvision
+scikit-learn
+matplotlib
+seaborn
+jupyter
+tqdm
+numpy

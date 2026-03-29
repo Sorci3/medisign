@@ -1,0 +1,11 @@
+Je travail sur un projet "MediSign Assist", une interface de communication d'urgence pour les patients sourds. L'objectif est de développer une application capable de reconnaître un vocabulaire restreint de 15 à 20 gestes médicaux d'urgence en LSF pour faciliter une prise en charge immédiate par le personnel soignant.
+
+Pour le moment les mots sont : "SOUFFRIR", "AIDER",    "FORT",     "MALADE",   "COEUR",
+    "TETE",     "MORT",     "DOS",      "VENTRE",   "FROID",
+    "JAMBE",    "JAMBES",   "RESPIRER", "ACCIDENT", "FAIBLE",
+    "ENCEINTE", "DIABETE",  "BRAS",     "DOSSIER",  "EFFORT"
+
+Dans le dossier src/dataset tu trouveras le dataset (la version ISOL) et je veux que tu utilises les poses qui sont les coordonnées des gestes. 
+Le fichier fink2021.pdf est un papier de recherche scientifique qui pare du dataset utilisée et du modèle Inflated 3D Convolution Networks (I3D). J'aimerais que tu implémente ce modèle. 
+
+Dans un premier temps je veux que tu me fasse un ou deux fichier .ipynb qui implémente un preprocess du dataset (augmentation, nettoyage, …) si besoin et que ensuite tu implémentes le modèle I3D. Je veux que qu'une partie du code test le modèle et m'affiche les metrics (accuracy, ...). Pense également a faire une fonction qui sauvegarde le modèle entrainer.
