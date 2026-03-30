@@ -11,7 +11,7 @@ MediSign Assist reconnaît 20 signes médicaux d'urgence en LSF à partir de coo
 
 ### Signes reconnus (20 classes)
 
-`SOUFFRIR` · `AIDER` · `FORT` · `MALADE` · `COEUR` · `TETE` · `MORT` · `DOS` · `VENTRE` · `FROID` · `JAMBE` · `JAMBES` · `RESPIRER` · `ACCIDENT` · `FAIBLE` · `ENCEINTE` · `DIABETE` · `BRAS` · `DOSSIER` · `EFFORT`
+`SOUFFRIR` · `AIDER` · `FORT` · `MALADE` · `COEUR` · `TETE` · `MORT` · `PLEURER` · `NON` · `FROID` · `MANGER` · `OUI` · `TOMBER` · `ACCIDENT` · `MARCHER` · `ENCEINTE` · `DORMIR` · `BOIRE` · `CHAUD` · `MEDECIN`
 
 ## Structure du projet
 
@@ -92,7 +92,7 @@ Le dataset provient de [LSFB ISOL v2](https://lsfb.info.unamur.be) (Belgian Fren
 | Split entraînement | 607 instances |
 | Split test | 380 instances |
 | Classe majoritaire | FORT (486 instances) |
-| Classe minoritaire | JAMBES (1 instance, uniquement dans le test) |
+| Classe minoritaire | OUI (1 instance, uniquement dans le test) |
 
 ## Architectures
 

@@ -26,9 +26,9 @@ DESTINATION = "src/dataset"
 
 MY_SIGNS_EXACT = [
     "SOUFFRIR", "AIDER",    "FORT",     "MALADE",   "COEUR",
-    "TETE",     "MORT",     "DOS",      "VENTRE",   "FROID",
-    "JAMBE",    "JAMBES",   "RESPIRER", "ACCIDENT", "FAIBLE",
-    "ENCEINTE", "DIABETE",  "BRAS",     "DOSSIER",  "EFFORT"
+    "TETE",     "MORT",     "PLEURER",  "NON",      "FROID",
+    "MANGER",   "OUI",      "TOMBER",   "ACCIDENT", "MARCHER",
+    "ENCEINTE", "DORMIR",   "BOIRE",    "CHAUD",    "MEDECIN"
 ]
 
 DOWNLOAD_VIDEOS = True
