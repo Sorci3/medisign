@@ -28,9 +28,11 @@ ProjetMajeur/
 │   │   ├── videos/                   # Vidéos source .mp4
 │   │   ├── metadata/                 # Splits train/test, mapping signe→index
 │   │   └── preprocessed/             # Tenseurs heatmaps prétraités (générés par notebook 1, pour I3D)
-│   ├── models/                       # Checkpoints des modèles entraînés
+│   ├── models/                       # Checkpoints des modèles entraînés (.pth) + modèle MediaPipe (.task)
 │   └── utils/
-│       └── dataset_extraction.py     # Script de téléchargement du dataset
+│       ├── dataset_extraction.py     # Script de téléchargement du dataset
+│       ├── extract_poses.py          # Ré-extraction des poses depuis les vidéos (nouveau MediaPipe)
+│       └── inference.py             # Inférence temps réel via caméra (TCN)
 ├── docs/
 │   └── superpowers/plans/            # Plans d'implémentation
 ├── requirements.txt
@@ -50,6 +52,26 @@ pip install -r requirements.txt
 > **Note GPU :** PyTorch est installé en version CPU par défaut. Pour utiliser un GPU CUDA, réinstaller torch avec l'URL appropriée : https://pytorch.org/get-started/locally/
 
 ## Utilisation
+
+### Inférence temps réel — caméra (`src/utils/inference.py`)
+
+Lance la reconnaissance de signes en direct depuis la webcam avec le modèle TCN entraîné.
+Le modèle MediaPipe Holistic (~30 MB) est téléchargé automatiquement au premier lancement.
+
+```bash
+python src/utils/inference.py
+```
+
+| Touche | Action |
+|--------|--------|
+| `Q` | Quitter |
+| `ESPACE` | Réinitialiser le buffer |
+
+**Comportement :** les frames sont collectées dès qu'une main est détectée. Une prédiction est lancée toutes les 16 nouvelles frames (dès 32 frames accumulées). Le résultat affiché est un vote majoritaire sur les 7 dernières prédictions. Le top-3 des signes candidats est affiché en bas à droite.
+
+> **Note :** Si le modèle prédit mal en temps réel, les poses du dataset ont probablement été extraites avec une ancienne version de MediaPipe. Voir [Ré-extraction des poses](#ré-extraction-des-poses--srcutilsextract_posespy).
+
+---
 
 ### Approche recommandée — TCN (`src/notebooks/03_tcn_training.ipynb`)
 
@@ -77,6 +99,26 @@ Aucun prétraitement préalable nécessaire. Le notebook charge les poses direct
 1. Architecture Inception-I3D (Carreira & Zisserman, 2017) pour entrée `(batch, 3, 32, 64, 64)`
 2. Entraînement : Adam + ReduceLROnPlateau + early stopping (patience=10, max 50 époques)
 3. Évaluation et sauvegarde dans `src/models/i3d_medisign_final.pth`
+
+### Ré-extraction des poses (`src/utils/extract_poses.py`)
+
+Si les poses du dataset ont été générées avec une ancienne version de MediaPipe, il faut les ré-extraire depuis les vidéos pour aligner les distributions train/inférence.
+
+```bash
+# Test rapide sur 20 vidéos
+python src/utils/extract_poses.py --limit 20
+
+# Tout le dataset (~5 000 vidéos, ~1-2h selon le matériel)
+python src/utils/extract_poses.py
+
+# Reprendre une extraction interrompue
+python src/utils/extract_poses.py --skip-existing
+```
+
+Les fichiers `.npy` dans `src/dataset/poses/` sont remplacés par les nouvelles extractions.
+Relancer ensuite `03_tcn_training.ipynb` pour réentraîner le modèle.
+
+---
 
 ## Données
 
@@ -109,7 +151,7 @@ Input: (batch, 225, T=32)   ← coordonnées brutes corps + mains
   │
   └─ AdaptiveAvgPool → Dropout(0.3) → Linear(128 → 20)
 
-Paramètres : ~200k
+Paramètres : ~428k
 ```
 
 ### I3D (référence)

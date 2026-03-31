@@ -173,4 +173,37 @@ j'obtient des results vraiment catastrophique, une idee de pourquoi ? Personnele
   │ MORT     │ 36          │ Urgence       │
   ├──────────┼─────────────┼───────────────┤
   │ MEDECIN  │ 30          │ Médical       │
-  └──────────┴─────────────┴───────────────┘ 
+  └──────────┴─────────────┴───────────────┘
+
+==================================================================================================================================================================================================================================
+> L'inférence annonce seulement tomber, que faire ?
+
+ Le problème vient de deux choses combinées :
+
+  1. Le lissage temporel manque — chaque fenêtre de 16 frames donne une prédiction bruyante, sans voter sur plusieurs
+  prédictions successives
+  2. Le déclencheur "mains visibles" est trop strict — si la main n'est pas détectée quelques frames, le buffer se vide
+  et la prédiction saute sur n'importe quoi
+
+  Je vais ajouter un vote majoritaire sur les dernières prédictions + afficher le top-3.
+
+● Script créé : src/utils/extract_poses.py
+
+  Ce qu'il fait : pour chaque vidéo du dataset, il relance le nouveau HolisticLandmarker frame par frame et écrase les
+  .npy avec les coordonnées du même modèle que celui utilisé en inférence temps réel.
+
+  Usage :
+  # Test rapide sur 20 vidéos
+  python src/utils/extract_poses.py --limit 20
+
+  # Tout le dataset (~5000 vidéos, peut prendre 1-2h)
+  python src/utils/extract_poses.py
+
+  # Reprendre là où c'était arrêté
+  python src/utils/extract_poses.py --skip-existing
+
+  Ensuite, il faudra réentraîner le TCN dans le notebook 03_tcn_training.ipynb — les nouvelles poses auront les mêmes
+  distributions qu'en inférence caméra, ce qui devrait corriger le biais vers TOMBER.
+
+  ▎ Note : Le script crée un nouveau HolisticLandmarker par vidéo, c'est obligatoire car le mode VIDEO exige des
+  timestamps qui repartent de 0 à chaque clip.  
