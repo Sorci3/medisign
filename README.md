@@ -6,7 +6,7 @@ Reconnaissance de signes LSF (Langue des Signes Française Belge) pour la commun
 
 MediSign Assist reconnaît 20 signes médicaux d'urgence en LSF à partir de coordonnées de pose squelettique. Deux approches sont implémentées :
 
-- **TCN** (Temporal Convolutional Network) — approche recommandée, travaille sur les coordonnées brutes, adapté à la taille du dataset
+- **TCN** (Temporal Convolutional Network) — travaille sur les coordonnées brutes, plus adapté à la taille du dataset
 - **I3D** (Inflated 3D Convolution Network) — approche de référence issue de l'article Fink et al. (2021), travaille sur des heatmaps 2D
 
 ### Signes reconnus (20 classes)
@@ -73,7 +73,7 @@ python src/utils/inference.py
 
 ---
 
-### Approche recommandée — TCN (`src/notebooks/03_tcn_training.ipynb`)
+### Approche recommandée — TCN (`src/notebooks/02_tcn_training.ipynb`)
 
 Aucun prétraitement préalable nécessaire. Le notebook charge les poses directement depuis `src/dataset/poses/`.
 
@@ -85,9 +85,9 @@ Aucun prétraitement préalable nécessaire. Le notebook charge les poses direct
 6. **Évaluation** : accuracy, macro-F1, rapport par classe, matrice de confusion
 7. **Sauvegarde** du modèle dans `src/models/tcn_medisign_final.pth`
 
-### Approche de référence — I3D (`src/notebooks/01_preprocessing.ipynb` puis `02_i3d_training.ipynb`)
+### Approche de référence — I3D (`src/notebooks/01_i3d_preprocessing.ipynb` puis `02_i3d_training.ipynb`)
 
-**Étape 1 — Prétraitement** (`01_preprocessing.ipynb`) :
+**Étape 1 — Prétraitement** (`01_i3d_preprocessing.ipynb`) :
 
 1. Exploration des données et nettoyage (suppression des 4 instances T=0)
 2. Génération de heatmaps Gaussiennes 64×64 pour corps, main gauche, main droite → tenseur `(3, 32, 64, 64)`
