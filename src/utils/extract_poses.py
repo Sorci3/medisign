@@ -18,12 +18,16 @@ Usage :
 """
 
 import argparse
+import sys
 import urllib.request
 import numpy as np
 import cv2
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from signs import SIGNS_TARGET  # noqa: E402
 
 import mediapipe as mp
 from mediapipe.tasks import python as mp_tasks
@@ -130,12 +134,6 @@ def main():
     instances_csv = DATASET_ROOT / "instances.csv"
     df = pd.read_csv(instances_csv)
 
-    SIGNS_TARGET = [
-        "SOUFFRIR", "AIDER",    "FORT",     "MALADE",   "COEUR",
-        "TETE",     "MORT",     "PLEURER",  "NON",      "FROID",
-        "MANGER",   "OUI",      "TOMBER",   "ACCIDENT", "MARCHER",
-        "ENCEINTE", "DORMIR",   "BOIRE",    "CHAUD",    "MEDECIN",
-    ]
     df = df[df["sign"].isin(SIGNS_TARGET)].reset_index(drop=True)
 
     # Filter to videos that actually exist on disk

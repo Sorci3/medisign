@@ -3,7 +3,6 @@
 
 # Dataset et modèles (trop lourds pour git)
 src/dataset/
-src/models/
 
 # Notebooks exécutés
 src/notebooks/*_executed.ipynb

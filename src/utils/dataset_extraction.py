@@ -13,10 +13,15 @@ Utilisation :
 """
 
 import os
+import sys
 import json
 import requests
 import pandas as pd
+from pathlib import Path
 from lsfb_dataset import Downloader
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from signs import SIGNS_TARGET  # noqa: E402
 
 # =============================================================================
 # CONFIGURATION
@@ -24,12 +29,7 @@ from lsfb_dataset import Downloader
 
 DESTINATION = "src/dataset"
 
-MY_SIGNS_EXACT = [
-    "SOUFFRIR", "AIDER",    "FORT",     "MALADE",   "COEUR",
-    "TETE",     "MORT",     "PLEURER",  "NON",      "FROID",
-    "MANGER",   "OUI",      "TOMBER",   "ACCIDENT", "MARCHER",
-    "ENCEINTE", "DORMIR",   "BOIRE",    "CHAUD",    "MEDECIN"
-]
+MY_SIGNS_EXACT = SIGNS_TARGET
 
 DOWNLOAD_VIDEOS = True
 DOWNLOAD_POSES  = True   # poses nettoyées (interpolées + lissées)

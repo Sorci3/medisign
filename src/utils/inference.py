@@ -25,16 +25,11 @@ import mediapipe as mp
 from mediapipe.tasks import python as mp_tasks
 from mediapipe.tasks.python import vision as mp_vision
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from signs import SIGNS_TARGET, IDX_TO_SIGN, NUM_CLASSES  # noqa: E402
 
-SIGNS_TARGET = [
-    "SOUFFRIR", "AIDER",    "FORT",     "MALADE",   "COEUR",
-    "TETE",     "MORT",     "PLEURER",  "NON",      "FROID",
-    "MANGER",   "OUI",      "TOMBER",   "ACCIDENT", "MARCHER",
-    "ENCEINTE", "DORMIR",   "BOIRE",    "CHAUD",    "MEDECIN",
-]
-IDX_TO_SIGN   = {i: s for i, s in enumerate(SIGNS_TARGET)}
-NUM_CLASSES   = len(SIGNS_TARGET)
+# ── Constants ─────────────────────────────────────────────────────────────────
 TARGET_T      = 32    # frames expected by the model
 
 BUFFER_MAX     = 64   # max frames kept in the sliding window
