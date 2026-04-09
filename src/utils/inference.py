@@ -39,6 +39,8 @@ CONF_THRESHOLD = 0.40
 
 VOTE_WINDOW    = 7    # majority vote over last N raw predictions
 GRACE_FRAMES   = 12   # frames to wait before clearing buffer when hands disappear
+DETECTION_COOLDOWN = 30  # frames (~1 s à 30 fps) pendant lesquels on fige l'affichage
+                          # et on arrête de collecter, après une détection confiante
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 TCN_MODEL_PATH = MODELS_DIR / "tcn_medisign_final.pth"
@@ -213,7 +215,8 @@ def draw_overlay(frame: np.ndarray,
                  voted_sign: str | None,
                  top3: list[tuple[str, float]],
                  buf_len: int,
-                 collecting: bool) -> None:
+                 collecting: bool,
+                 cooldown: int = 0) -> None:
     h, w = frame.shape[:2]
 
     # ── Top bar ──────────────────────────────────────────────────────────────
@@ -224,9 +227,15 @@ def draw_overlay(frame: np.ndarray,
     cv2.rectangle(frame, (10, 8),  (190, 22), (60, 60, 60), -1)
     cv2.rectangle(frame, (10, 8),  (10 + bar_w, 22), (0, 200, 80), -1)
 
-    status_color = (0, 220, 80) if collecting else (80, 80, 200)
-    status_label = (f"Buffer {buf_len}/{BUFFER_MAX}"
-                    if collecting else "En attente de mains...")
+    if cooldown > 0:
+        status_color = (0, 200, 255)
+        status_label = f"Detecte ! Prochain geste dans {cooldown}..."
+    elif collecting:
+        status_color = (0, 220, 80)
+        status_label = f"Buffer {buf_len}/{BUFFER_MAX}"
+    else:
+        status_color = (80, 80, 200)
+        status_label = "En attente de mains..."
     cv2.putText(frame, status_label, (10, 40),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, status_color, 1, cv2.LINE_AA)
 
@@ -284,6 +293,7 @@ def main():
     buffer: list[np.ndarray]       = []
     frames_since_last_pred: int    = 0
     grace_counter: int             = 0   # frames since hands disappeared
+    detection_cooldown: int        = 0   # frames restants avant reset post-détection
     vote_history: collections.deque = collections.deque(maxlen=VOTE_WINDOW)
     voted_sign: str | None         = None
     last_top3: list                = []
@@ -309,24 +319,37 @@ def main():
             # ── Buffer management ────────────────────────────────────────────
             if hands_visible:
                 grace_counter = 0
-                buffer.append(extract_keypoints(result))
-                if len(buffer) > BUFFER_MAX:
-                    buffer.pop(0)
-                frames_since_last_pred += 1
 
-                if (len(buffer) >= MIN_FRAMES and
-                        frames_since_last_pred >= PRED_STRIDE):
-                    coords   = resample_to_target(np.array(buffer))
-                    top3     = predict_top3(model, coords, device)
-                    last_top3 = top3
-                    best_sign = top3[0][0]
-                    vote_history.append(best_sign)
-                    # Majority vote over recent predictions
-                    voted_sign = collections.Counter(vote_history).most_common(1)[0][0]
-                    frames_since_last_pred = 0
-                    print(f"  → {top3[0][0]} ({top3[0][1]*100:.1f}%)  "
-                          f"[vote: {voted_sign}]  "
-                          f"top3: {[(s, f'{c*100:.0f}%') for s, c in top3]}")
+                # Cooldown post-détection : on affiche le résultat, on ne collecte pas
+                if detection_cooldown > 0:
+                    detection_cooldown -= 1
+                    if detection_cooldown == 0:
+                        buffer.clear()
+                        vote_history.clear()
+                        frames_since_last_pred = 0
+                        print("[INFO] Buffer réinitialisé après détection.")
+                else:
+                    buffer.append(extract_keypoints(result))
+                    if len(buffer) > BUFFER_MAX:
+                        buffer.pop(0)
+                    frames_since_last_pred += 1
+
+                    if (len(buffer) >= MIN_FRAMES and
+                            frames_since_last_pred >= PRED_STRIDE):
+                        coords   = resample_to_target(np.array(buffer))
+                        top3     = predict_top3(model, coords, device)
+                        last_top3 = top3
+                        best_sign = top3[0][0]
+                        vote_history.append(best_sign)
+                        # Majority vote over recent predictions
+                        voted_sign = collections.Counter(vote_history).most_common(1)[0][0]
+                        frames_since_last_pred = 0
+                        print(f"  → {top3[0][0]} ({top3[0][1]*100:.1f}%)  "
+                              f"[vote: {voted_sign}]  "
+                              f"top3: {[(s, f'{c*100:.0f}%') for s, c in top3]}")
+                        # Auto-reset après détection confiante
+                        if top3[0][1] >= CONF_THRESHOLD:
+                            detection_cooldown = DETECTION_COOLDOWN
             else:
                 grace_counter += 1
                 if grace_counter >= GRACE_FRAMES:
@@ -340,7 +363,9 @@ def main():
                         voted_sign = collections.Counter(vote_history).most_common(1)[0][0]
                         print(f"  → {top3[0][0]} ({top3[0][1]*100:.1f}%)  [fin de geste]")
                     buffer.clear()
+                    vote_history.clear()
                     frames_since_last_pred = 0
+                    detection_cooldown = 0
 
             # ── Draw skeleton ────────────────────────────────────────────────
             _draw_landmarks(frame, result.pose_landmarks,
@@ -350,7 +375,8 @@ def main():
             _draw_landmarks(frame, result.right_hand_landmarks,
                             _HAND_CONNECTIONS, (245, 117, 66))
 
-            draw_overlay(frame, voted_sign, last_top3, len(buffer), hands_visible)
+            draw_overlay(frame, voted_sign, last_top3, len(buffer), hands_visible,
+                         cooldown=detection_cooldown)
             cv2.imshow("MediSign — TCN Inference", frame)
 
             # ── Keyboard ─────────────────────────────────────────────────────
