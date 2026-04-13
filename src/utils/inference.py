@@ -43,7 +43,7 @@ DETECTION_COOLDOWN = 30  # frames (~1 s à 30 fps) pendant lesquels on fige l'af
                           # et on arrête de collecter, après une détection confiante
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
-TCN_MODEL_PATH = MODELS_DIR / "tcn_medisign_final.pth"
+TCN_MODEL_PATH = MODELS_DIR / "tcn_pretrained_final.pth"
 
 HOLISTIC_MODEL_URL  = (
     "https://storage.googleapis.com/mediapipe-models/"
@@ -62,22 +62,26 @@ def ensure_holistic_model() -> None:
     print(f"[OK]   Modèle sauvegardé : {HOLISTIC_MODEL_PATH.name}")
 
 # ── TCN model (must match training architecture) ───────────────────────────────
+# Architecture du notebook 03_tcn_pretrain : TCNClassifier = TCNEncoder + MLP head
+# TCNEncoder : 6 blocs, hidden=256, kernel_size=5, AttentionPooling
 
 class TemporalBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int,
-                 kernel_size: int = 3, dilation: int = 1, dropout: float = 0.2):
+                 kernel_size: int = 5, dilation: int = 1,
+                 dropout: float = 0.3, drop_path: float = 0.0):
         super().__init__()
-        padding      = (kernel_size - 1) * dilation // 2
-        self.conv1   = nn.Conv1d(in_channels,  out_channels, kernel_size,
-                                 padding=padding, dilation=dilation)
-        self.bn1     = nn.BatchNorm1d(out_channels)
-        self.conv2   = nn.Conv1d(out_channels, out_channels, kernel_size,
-                                 padding=padding, dilation=dilation)
-        self.bn2     = nn.BatchNorm1d(out_channels)
-        self.relu    = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout(dropout)
-        self.downsample = (nn.Conv1d(in_channels, out_channels, 1)
-                           if in_channels != out_channels else None)
+        padding          = (kernel_size - 1) * dilation // 2
+        self.conv1       = nn.Conv1d(in_channels,  out_channels, kernel_size,
+                                     padding=padding, dilation=dilation)
+        self.bn1         = nn.BatchNorm1d(out_channels)
+        self.conv2       = nn.Conv1d(out_channels, out_channels, kernel_size,
+                                     padding=padding, dilation=dilation)
+        self.bn2         = nn.BatchNorm1d(out_channels)
+        self.relu        = nn.ReLU(inplace=True)
+        self.dropout     = nn.Dropout(dropout)
+        self.drop_path_prob = drop_path
+        self.downsample  = (nn.Conv1d(in_channels, out_channels, 1)
+                            if in_channels != out_channels else None)
 
     def forward(self, x):
         residual = x if self.downsample is None else self.downsample(x)
@@ -88,31 +92,65 @@ class TemporalBlock(nn.Module):
         return self.relu(out + residual)
 
 
-class TCN(nn.Module):
-    def __init__(self, in_channels: int = 225, num_classes: int = 20,
-                 hidden: int = 128, dropout: float = 0.3):
+class AttentionPooling(nn.Module):
+    def __init__(self, hidden: int):
         super().__init__()
-        self.input_proj = nn.Conv1d(in_channels, hidden, kernel_size=1)
-        self.blocks = nn.Sequential(
-            TemporalBlock(hidden, hidden, kernel_size=3, dilation=1,  dropout=dropout),
-            TemporalBlock(hidden, hidden, kernel_size=3, dilation=2,  dropout=dropout),
-            TemporalBlock(hidden, hidden, kernel_size=3, dilation=4,  dropout=dropout),
-            TemporalBlock(hidden, hidden, kernel_size=3, dilation=8,  dropout=dropout),
+        self.attn = nn.Sequential(
+            nn.Linear(hidden, hidden // 4),
+            nn.Tanh(),
+            nn.Linear(hidden // 4, 1, bias=False),
         )
-        self.pool       = nn.AdaptiveAvgPool1d(1)
-        self.dropout    = nn.Dropout(dropout)
-        self.classifier = nn.Linear(hidden, num_classes)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x_t     = x.permute(0, 2, 1)                    # (B, T, C)
+        weights = torch.softmax(self.attn(x_t), dim=1)  # (B, T, 1)
+        return (x_t * weights).sum(dim=1)               # (B, C)
+
+
+class TCNEncoder(nn.Module):
+    def __init__(self, in_channels: int = 225, hidden: int = 256, dropout: float = 0.3):
+        super().__init__()
+        self.input_proj = nn.Sequential(
+            nn.Conv1d(in_channels, hidden, kernel_size=1),
+            nn.BatchNorm1d(hidden),
+            nn.ReLU(inplace=True),
+        )
+        drop_paths = [0.05, 0.05, 0.1, 0.1, 0.15, 0.15]
+        dilations  = [1, 2, 4, 8, 16, 32]
+        self.blocks = nn.Sequential(*[
+            TemporalBlock(hidden, hidden, kernel_size=5,
+                          dilation=d, dropout=dropout, drop_path=dp)
+            for d, dp in zip(dilations, drop_paths)
+        ])
+        self.pool = AttentionPooling(hidden)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.input_proj(x)
         x = self.blocks(x)
-        x = self.pool(x).squeeze(-1)
-        x = self.dropout(x)
-        return self.classifier(x)
+        return self.pool(x)
 
 
-def load_model(device: torch.device) -> TCN:
-    model   = TCN(in_channels=225, num_classes=NUM_CLASSES, hidden=128, dropout=0.3)
+class TCNClassifier(nn.Module):
+    def __init__(self, in_channels: int = 225, hidden: int = 256,
+                 num_classes: int = 20, dropout: float = 0.3):
+        super().__init__()
+        self.encoder = TCNEncoder(in_channels, hidden, dropout)
+        self.head = nn.Sequential(
+            nn.LayerNorm(hidden),
+            nn.Dropout(dropout),
+            nn.Linear(hidden, hidden // 2),
+            nn.GELU(),
+            nn.Dropout(dropout / 2),
+            nn.Linear(hidden // 2, num_classes),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.head(self.encoder(x))
+
+
+def load_model(device: torch.device) -> TCNClassifier:
+    model   = TCNClassifier(in_channels=225, hidden=256,
+                             num_classes=NUM_CLASSES, dropout=0.3)
     payload = torch.load(TCN_MODEL_PATH, map_location=device, weights_only=False)
     state   = payload["state_dict"] if "state_dict" in payload else payload
     model.load_state_dict(state)
@@ -163,7 +201,7 @@ def resample_to_target(buffer: np.ndarray, target_T: int = TARGET_T) -> np.ndarr
 # ── TCN inference ─────────────────────────────────────────────────────────────
 
 @torch.no_grad()
-def predict_top3(model: TCN, coords: np.ndarray, device: torch.device
+def predict_top3(model: TCNClassifier, coords: np.ndarray, device: torch.device
                  ) -> list[tuple[str, float]]:
     """
     coords: (225, T)
