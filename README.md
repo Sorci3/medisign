@@ -1,6 +1,6 @@
 # MediSign Assist
 
-Reconnaissance de signes LSF (Langue des Signes Française Belge) pour la communication d'urgence médicale avec des patients sourds. Ce projet a été réalisé dans le cadre de nos études à l'**ESAIP**, au sein de la spécialisation **Intelligence Artificielle**.
+Reconnaissance de signes LSFB (Langue des Signes Française Belge) pour la communication d'urgence médicale avec des patients sourds. Ce projet a été réalisé dans le cadre de nos études à l'**ESAIP**, au sein de la spécialisation **Intelligence Artificielle**.
 
 ### 👥 Équipe Projet
 *   **Sorci3**
