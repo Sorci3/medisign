@@ -46,7 +46,7 @@ python src/utils/inference.py
 
 Nous avons également testé une approche basée sur les Transformers : **SPOTER** (Sign Pose-Based Transformer). Cette version utilise le mécanisme d'attention pour traiter les séquences de signes.
 
-Cette approche est isolée dans la branche et le dossier `spoter/`. Pour plus de détails sur son fonctionnement, son entraînement et sa normalisation spécifique (Bohacek), veuillez consulter le **[README dédié à SPOTER](./spoter/README.md)**.
+Cette approche est isolée dans la branche et le dossier `spoter/`. Pour plus de détails sur son fonctionnement, son entraînement et sa normalisation spécifique (Bohacek), veuillez consulter le README dédié à SPOTER.
 
 ---
 
