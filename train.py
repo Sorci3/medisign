@@ -162,11 +162,11 @@ def main():
                         help="Nombre d'epochs phase 1 (tête seule, défaut: 10)")
     args = parser.parse_args()
 
-    epochs    = CFG["epochs"]
-    batch_sz  = CFG["batch_size"]
-    lr        = CFG["learning_rate"]
-    patience  = CFG["patience"]
-    min_samp  = CFG["min_samples_after_augment"]
+    epochs    = CFG["finetune"]["epochs"]
+    batch_sz  = CFG["finetune"]["batch_size"]
+    lr        = CFG["finetune"]["learning_rate"]
+    patience  = CFG["finetune"]["patience"]
+    min_samp  = CFG["finetune"]["min_samples_after_augment"]
 
     # ── Chargement + normalisation ────────────────────────────────────────────
     df = pd.read_csv(INDEX_PATH)
@@ -182,10 +182,10 @@ def main():
 
     # ── Split train / val / test ──────────────────────────────────────────────
     X_tmp, X_test, y_tmp, y_test = train_test_split(
-        X_raw, y_int, test_size=CFG["test_size"], stratify=y_int, random_state=42)
+        X_raw, y_int, test_size=CFG["finetune"]["test_size"], stratify=y_int, random_state=42)
     X_train, X_val, y_train, y_val = train_test_split(
         X_tmp, y_tmp,
-        test_size=CFG["val_size"] / (1 - CFG["test_size"]),
+        test_size=CFG["finetune"]["val_size"] / (1 - CFG["finetune"]["test_size"]),
         stratify=y_tmp, random_state=42)
     print(f"train: {len(X_train)}, val: {len(X_val)}, test: {len(X_test)}")
 
@@ -223,12 +223,12 @@ def main():
     model = SPOTER(
         num_classes        = n_classes,
         feature_size       = FEATURE_SIZE,
-        hidden_dim         = CFG["hidden_dim"],
-        nhead              = CFG["nhead"],
-        num_encoder_layers = CFG["num_encoder_layers"],
-        num_decoder_layers = CFG["num_decoder_layers"],
-        dim_feedforward    = CFG["dim_feedforward"],
-        dropout            = CFG["dropout"],
+        hidden_dim         = CFG["model"]["hidden_dim"],
+        nhead              = CFG["model"]["nhead"],
+        num_encoder_layers = CFG["model"]["num_encoder_layers"],
+        num_decoder_layers = CFG["model"]["num_decoder_layers"],
+        dim_feedforward    = CFG["model"]["dim_feedforward"],
+        dropout            = CFG["finetune"]["dropout"],
     ).to(DEVICE)
     print(f"\nSPOTER — {sum(p.numel() for p in model.parameters()):,} parametres")
 
@@ -312,11 +312,11 @@ def main():
     # ── Sauvegarde ────────────────────────────────────────────────────────────
     meta = {
         "max_len": max_len, "n_classes": n_classes, "feature_size": FEATURE_SIZE,
-        "hidden_dim": CFG["hidden_dim"], "nhead": CFG["nhead"],
-        "num_encoder_layers": CFG["num_encoder_layers"],
-        "num_decoder_layers": CFG["num_decoder_layers"],
-        "dim_feedforward": CFG["dim_feedforward"],
-        "dropout": CFG["dropout"],
+        "hidden_dim": CFG["model"]["hidden_dim"], "nhead": CFG["model"]["nhead"],
+        "num_encoder_layers": CFG["model"]["num_encoder_layers"],
+        "num_decoder_layers": CFG["model"]["num_decoder_layers"],
+        "dim_feedforward": CFG["model"]["dim_feedforward"],
+        "dropout": CFG["finetune"]["dropout"],
         "test_accuracy": test_acc,
     }
     with open(os.path.join(MODELS_DIR, "meta.json"), "w") as f:

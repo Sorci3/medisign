@@ -16,12 +16,17 @@ Contrairement aux approches convolutives (TCN/I3D), SPOTER repose entièrement s
 ## 🚀 Utilisation
 
 ### 1. Préparation des données
-Le script `prepare_data.py` automatise tout le pipeline de données :
 ```bash
-# Téléchargement, indexation et fusion des landmarks
-python prepare_data.py
+# Téléchargement des poses (20 signes médicaux + dataset complet pour le pré-entraînement)
+python prepare_data.py --step download
+python prepare_data.py --step pretrain-download
+
+# Génération des landmarks
+python prepare_data.py --step pretrain-landmarks
+python prepare_data.py --step index
+python prepare_data.py --step landmarks
 ```
-*Note : Les données sont stockées dans le dossier défini dans `config.json`.*
+*Les données sont stockées dans le dossier défini dans `config.json`.*
 
 ### 2. Pipeline d'Entraînement
 Le modèle suit un cycle d'apprentissage complet pour maximiser sa précision :
@@ -35,7 +40,7 @@ python pretrain.py
 **Phase B : Fine-tuning (Spécialisé)**
 On affine ensuite le modèle sur les 20 signes médicaux cibles. Cette étape utilise les poids pré-entraînés pour accélérer la convergence.
 ```bash
-python train.py --pretrained models/spoter/pretrained.pt --freeze-epochs 10
+python train.py --pretrained models/spoter/pretrained.pt
 ```
 *Le script gèle le backbone pendant 10 époques pour stabiliser la tête de classification avant de libérer l'ensemble du réseau.*
 

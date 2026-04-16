@@ -1,7 +1,7 @@
 # Architecture SPOTER
 #
 # SPOTER (Sign POse-based TransformER) — Bohacek & Hruz, 2022
-# Adapté pour batch training et PyTorch >= 2.x
+#
 #
 # Flux :
 #   (B, T, feature_size)
@@ -36,6 +36,7 @@ class SPOTERDecoderLayer(nn.TransformerDecoderLayer):
                 tgt_key_padding_mask=None, memory_key_padding_mask=None,
                 tgt_is_causal=None, memory_is_causal=None):
         # Cross-attention : class_query interroge la séquence encodée
+        # tgt/memory : (B, T, hidden_dim) avec batch_first=True
         tgt  = tgt + self.dropout1(tgt)
         tgt  = self.norm1(tgt)
         tgt2 = self.multihead_attn(
@@ -75,11 +76,11 @@ class SPOTER(nn.Module):
                            if feature_size != hidden_dim else nn.Identity())
 
         # Biais positionnel : un seul vecteur appris partagé sur tous les frames.
-        # Choix délibéré : pas de PE sinusoïdal — le modèle raisonne sur la forme
+        # Choix délibéré : pas de PE sinusoïdal, le modèle raisonne sur la forme
         # spatiale des poses, pas sur l'ordre absolu des frames.
         self.pos = nn.Parameter(torch.rand(1, 1, hidden_dim))
 
-        # Token de classe appris (analogue à [CLS] de BERT)
+        # Token de classe appris
         self.class_query = nn.Parameter(torch.rand(1, 1, hidden_dim))
 
         self.transformer = nn.Transformer(
@@ -87,9 +88,11 @@ class SPOTER(nn.Module):
             num_encoder_layers=num_encoder_layers,
             num_decoder_layers=num_decoder_layers,
             dim_feedforward=dim_feedforward, dropout=dropout,
+            batch_first=True,
         )
         # Remplace les couches du décodeur par SPOTERDecoderLayer
-        custom_dec = SPOTERDecoderLayer(hidden_dim, nhead, dim_feedforward, dropout, "relu")
+        custom_dec = SPOTERDecoderLayer(hidden_dim, nhead, dim_feedforward, dropout, "relu",
+                                        batch_first=True)
         self.transformer.decoder.layers = _get_clones(custom_dec, num_decoder_layers)
 
         # Tête de classification
@@ -97,7 +100,7 @@ class SPOTER(nn.Module):
 
     def forward(self, x):
         # x : (B, T, feature_size)
-        h     = self.input_proj(x).permute(1, 0, 2) + self.pos   # (T, B, hidden_dim)
-        query = self.class_query.expand(1, x.size(0), -1)          # (1, B, hidden_dim)
-        out   = self.transformer(h, query)                          # (1, B, hidden_dim)
-        return self.linear_class(out.squeeze(0))                    # (B, num_classes)
+        h     = self.input_proj(x) + self.pos                  # (B, T, hidden_dim)
+        query = self.class_query.expand(x.size(0), 1, -1)      # (B, 1, hidden_dim)
+        out   = self.transformer(h, query)                      # (B, 1, hidden_dim)
+        return self.linear_class(out.squeeze(1))                # (B, num_classes)

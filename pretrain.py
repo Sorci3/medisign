@@ -5,12 +5,10 @@
 #
 # Workflow :
 #   1. python prepare_data.py --step download             # télécharge les poses
-#   2. python prepare_data.py --step pretrain-landmarks   # normalise + sauvegarde (~40 min)
-#   3. python pretrain.py                                  # pré-entraîne SPOTER
+#   2. python prepare_data.py --step pretrain-landmarks   # normalise + sauvegarde
+#   3. python pretrain.py                                 # pré-entraîne SPOTER
 #   4. python train.py --pretrained models/spoter/pretrained.pt
 #
-# Les landmarks sont chargés à la volée depuis pretrain_landmarks/ (lazy loading),
-# comme un CNN charge ses images — pas besoin de tout mettre en RAM.
 
 import os
 import sys
@@ -46,7 +44,7 @@ MODELS_DIR     = os.path.join(_HERE, "models", "spoter")
 os.makedirs(MODELS_DIR, exist_ok=True)
 
 FEATURE_SIZE = 225   # pas de face pour le pré-entraînement
-MAX_LEN      = 80    # p99 du dataset LSFB = 76 frames — couvre 99% des séquences
+MAX_LEN      = 80    # taille maximale de la séquence
 MIN_INSTANCES = 50   # filtre les signes avec trop peu d'exemples
 DEVICE        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -55,9 +53,8 @@ DEVICE        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class SignDataset(Dataset):
     """
-    Charge chaque séquence à la volée depuis pretrain_landmarks/ dans __getitem__,
-    exactement comme un CNN charge ses images.
-    Les fichiers sont déjà normalisés (Bohacek appliqué par prepare_data.py).
+    Charge chaque séquence à la volée depuis pretrain_landmarks/ dans __getitem__,.
+    Les fichiers sont déjà normalisés.
     """
     def __init__(self, paths, labels):
         self.paths  = paths   # liste de chemins vers les .npy
@@ -118,10 +115,10 @@ def main():
         print("Lancez d'abord : python prepare_data.py --step pretrain-landmarks")
         return
 
-    epochs    = CFG["epochs"]
-    batch_sz  = CFG["batch_size"]
-    lr        = CFG["learning_rate"]
-    patience  = CFG["patience"]
+    epochs    = CFG["pretrain"]["epochs"]
+    batch_sz  = CFG["pretrain"]["batch_size"]
+    lr        = CFG["pretrain"]["learning_rate"]
+    patience  = CFG["pretrain"]["patience"]
 
     # ── Sélection des signes avec assez d'instances ───────────────────────────
     df     = pd.read_csv(INSTANCES_CSV)
@@ -166,12 +163,12 @@ def main():
     model = SPOTER(
         num_classes        = n_classes,
         feature_size       = FEATURE_SIZE,
-        hidden_dim         = CFG["hidden_dim"],
-        nhead              = CFG["nhead"],
-        num_encoder_layers = CFG["num_encoder_layers"],
-        num_decoder_layers = CFG["num_decoder_layers"],
-        dim_feedforward    = CFG["dim_feedforward"],
-        dropout            = CFG["dropout"],
+        hidden_dim         = CFG["model"]["hidden_dim"],
+        nhead              = CFG["model"]["nhead"],
+        num_encoder_layers = CFG["model"]["num_encoder_layers"],
+        num_decoder_layers = CFG["model"]["num_decoder_layers"],
+        dim_feedforward    = CFG["model"]["dim_feedforward"],
+        dropout            = CFG["pretrain"]["dropout"],
     ).to(DEVICE)
     print(f"SPOTER — {sum(p.numel() for p in model.parameters()):,} parametres — {n_classes} classes")
 
@@ -214,7 +211,7 @@ def main():
     # ── Sauvegarde ────────────────────────────────────────────────────────────
     meta = {
         "n_classes_pretrain": n_classes, "feature_size": FEATURE_SIZE,
-        "hidden_dim": CFG["hidden_dim"], "max_len": MAX_LEN,
+        "hidden_dim": CFG["model"]["hidden_dim"], "max_len": MAX_LEN,
         "best_val_loss": best_val_loss,
     }
     with open(os.path.join(MODELS_DIR, "pretrained_meta.json"), "w") as f:

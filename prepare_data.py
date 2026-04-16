@@ -1,7 +1,7 @@
 # prepare_data.py — Préparation des données LSFB en 3 étapes
 #
 # Usage :
-#   python prepare_data.py               # exécute les 3 étapes dans l'ordre
+#   python prepare_data.py                    # exécute les 3 étapes dans l'ordre
 #   python prepare_data.py --step download    # étape 1 : télécharge le dataset
 #   python prepare_data.py --step index       # étape 2 : génère index.csv
 #   python prepare_data.py --step landmarks   # étape 3 : fusionne les poses en .npy
@@ -64,6 +64,7 @@ def step_download():
         dataset="isol", destination=DATASET, splits=["all"],
         include_videos=False, include_cleaned_poses=False,
         include_raw_poses=False, skip_existing_files=True,
+        landmarks=["pose", "left_hand", "right_hand"],  # face inutile (FEATURE_SIZE=225)
     )
     downloader.download()  # télécharge les métadonnées (splits JSON)
 
@@ -72,11 +73,6 @@ def step_download():
     downloader._download_files(
         downloader._get_pose_origins(),
         title=f"Poses ({len(downloader.instances)} instances)"
-    )
-    downloader.include_videos = True
-    downloader._download_files(
-        downloader._get_video_origins(),
-        title=f"Videos ({len(downloader.instances)} instances)"
     )
     print("\nTelechargement termine.")
 
@@ -87,11 +83,11 @@ def step_download():
 
 def step_index():
     """
-    Génère index.csv en ne gardant que les vidéos réellement téléchargées.
-    Colonnes : id, sign, label (entier, trié alphabétiquement par signe).
+    Génère index.csv en ne gardant que les instances dont les poses sont présentes sur disque.
+    Colonnes : id, sign, label.
     """
     csv_path   = os.path.join(DATASET, "instances.csv")
-    video_dir  = os.path.join(DATASET, "videos")
+    poses_dir  = os.path.join(DATASET, "poses", "pose")
     index_path = os.path.join(DATASET, "index.csv")
 
     if not os.path.exists(csv_path):
@@ -101,8 +97,8 @@ def step_index():
     df          = pd.read_csv(csv_path)
     df_filtered = df[df["sign"].isin(SIGNS)].copy()
 
-    # Garde uniquement les vidéos présentes sur disque
-    available = {os.path.splitext(f)[0] for f in os.listdir(video_dir) if f.endswith(".mp4")}
+    # Garde uniquement les instances dont la pose est présente sur disque
+    available = {os.path.splitext(f)[0] for f in os.listdir(poses_dir) if f.endswith(".npy")}
     df_filtered = df_filtered[df_filtered["id"].isin(available)].reset_index(drop=True)
 
     label_map         = {s: i for i, s in enumerate(sorted(SIGNS))}
@@ -171,16 +167,51 @@ def step_landmarks():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ÉTAPE 3b — Téléchargement des poses pour le pré-entraînement (dataset complet)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def step_pretrain_download(min_instances=50):
+    """
+    Télécharge les poses de tout le dataset LSFB (452 classes, ~60k instances)
+    nécessaires au pré-entraînement. Filtre les signes avec moins de min_instances.
+    """
+    csv_path = os.path.join(DATASET, "instances.csv")
+    if not os.path.exists(csv_path):
+        print("instances.csv introuvable. Lancez d'abord : python prepare_data.py --step download")
+        return
+
+    df     = pd.read_csv(csv_path)
+    counts = df["sign"].value_counts()
+    df     = df[df["sign"].isin(counts[counts >= min_instances].index)].reset_index(drop=True)
+    all_ids = set(df["id"].tolist())
+
+    print(f"Instances a telecharger : {len(df)} ({df['sign'].nunique()} signes, seuil >= {min_instances})")
+
+    downloader = Downloader(
+        dataset="isol", destination=DATASET, splits=["all"],
+        include_videos=False, include_cleaned_poses=False,
+        include_raw_poses=False, skip_existing_files=True,
+        landmarks=["pose", "left_hand", "right_hand"],
+    )
+    downloader.download()  # métadonnées (splits JSON)
+
+    downloader.instances             = [i for i in downloader.instances if i in all_ids]
+    downloader.include_cleaned_poses = True
+    downloader._download_files(
+        downloader._get_pose_origins(),
+        title=f"Poses pretrain ({len(downloader.instances)} instances)"
+    )
+    print("\nTelechargement pretrain termine.")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ÉTAPE 4 — Landmarks pré-entraînement (dataset complet, normalisés)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def step_pretrain_landmarks(min_instances=50):
     """
-    Génère les landmarks normalisés pour tout le dataset LSFB (pas seulement les 20 signes).
-    Résultat : DATASET/pretrain_landmarks/<id>.npy — forme (T, 225), déjà normalisé Bohacek.
-
-    Avantage : pretrain.py peut charger à la volée depuis le disque (lazy loading)
-    au lieu de tout charger en RAM (~3 GB) avant de commencer.
+    Génère les landmarks normalisés pour tout le dataset LSFB.
+    Résultat : DATASET/pretrain_landmarks/<id>.npy — forme (T, 225), déjà normalisé.
     """
     import sys
     sys.path.insert(0, _HERE)
@@ -226,12 +257,13 @@ def step_pretrain_landmarks(min_instances=50):
 def main():
     parser = argparse.ArgumentParser(description="Preparation des donnees LSFB")
     parser.add_argument("--step",
-                        choices=["download", "index", "landmarks", "pretrain-landmarks", "all"],
+                        choices=["download", "index", "landmarks",
+                                 "pretrain-download", "pretrain-landmarks", "all"],
                         default="all", help="Etape a executer (defaut: all)")
     args = parser.parse_args()
 
     if args.step in ("all", "download"):
-        print("=== Etape 1 : Telechargement ===")
+        print("=== Etape 1 : Telechargement (20 signes) ===")
         step_download()
     if args.step in ("all", "index"):
         print("\n=== Etape 2 : Index ===")
@@ -239,6 +271,9 @@ def main():
     if args.step in ("all", "landmarks"):
         print("\n=== Etape 3 : Landmarks (20 signes) ===")
         step_landmarks()
+    if args.step == "pretrain-download":
+        print("\n=== Etape 3b : Telechargement poses pretrain (dataset complet) ===")
+        step_pretrain_download()
     if args.step == "pretrain-landmarks":
         print("\n=== Etape 4 : Landmarks pretrain (dataset complet) ===")
         step_pretrain_landmarks()

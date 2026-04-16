@@ -8,5 +8,5 @@
   "num_decoder_layers": 6,
   "dim_feedforward": 256,
   "dropout": 0.3,
-  "test_accuracy": 0.759075907590759
+  "test_accuracy": 0.8338833883388339
 }

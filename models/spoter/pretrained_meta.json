@@ -1,0 +1,7 @@
+{
+  "n_classes_pretrain": 452,
+  "feature_size": 225,
+  "hidden_dim": 64,
+  "max_len": 80,
+  "best_val_loss": 3.6203284252878514
+}

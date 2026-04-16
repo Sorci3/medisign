@@ -1,18 +1,30 @@
 {
   "dataset_path": "./data/LSFB_ISOL",
 
-  "epochs": 150,
-  "batch_size": 32,
-  "learning_rate": 1e-3,
-  "patience": 10,
-  "min_samples_after_augment": 150,
-  "test_size": 0.15,
-  "val_size": 0.15,
+  "model": {
+    "hidden_dim": 64,
+    "nhead": 4,
+    "num_encoder_layers": 6,
+    "num_decoder_layers": 6,
+    "dim_feedforward": 256
+  },
 
-  "hidden_dim": 64,
-  "nhead": 4,
-  "num_encoder_layers": 6,
-  "num_decoder_layers": 6,
-  "dim_feedforward": 256,
-  "dropout": 0.3
+  "pretrain": {
+    "epochs": 150,
+    "batch_size": 64,
+    "learning_rate": 1e-3,
+    "patience": 15,
+    "dropout": 0.1
+  },
+
+  "finetune": {
+    "epochs": 150,
+    "batch_size": 32,
+    "learning_rate": 1e-4,
+    "patience": 10,
+    "dropout": 0.3,
+    "min_samples_after_augment": 150,
+    "test_size": 0.15,
+    "val_size": 0.15
+  }
 }

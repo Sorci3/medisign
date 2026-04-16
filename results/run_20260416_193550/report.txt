@@ -1,0 +1,28 @@
+test accuracy : 0.8339
+
+               precision    recall  f1-score   support
+
+      APPELER       0.66      0.69      0.67        67
+        BOIRE       0.38      0.82      0.51        11
+        CHAUD       0.67      0.91      0.77        11
+   COMPRENDRE       0.90      0.93      0.92        91
+       DORMIR       0.48      1.00      0.65        13
+     ENCEINTE       0.67      1.00      0.80         6
+       FAIBLE       0.00      0.00      0.00         1
+         FORT       0.92      0.79      0.85        73
+        FROID       0.26      0.86      0.40         7
+      HOPITAL       0.67      1.00      0.80         6
+MALADE.VENTRE       0.67      0.40      0.50         5
+       MANGER       0.80      0.77      0.79        31
+      MEDECIN       0.21      0.75      0.33         4
+          NON       0.97      0.84      0.90       177
+          OUI       0.99      0.84      0.91       346
+ PAS.SOUFFLER       1.00      0.20      0.33         5
+     RESPIRER       0.00      0.00      0.00         1
+     SOUFFRIR       0.55      1.00      0.71         6
+       TOMBER       0.56      1.00      0.71        10
+         VITE       0.78      0.84      0.81        38
+
+     accuracy                           0.83       909
+    macro avg       0.61      0.73      0.62       909
+ weighted avg       0.89      0.83      0.85       909
