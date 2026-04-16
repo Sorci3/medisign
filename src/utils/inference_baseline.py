@@ -33,9 +33,9 @@ from signs import SIGNS_TARGET, IDX_TO_SIGN, NUM_CLASSES  # noqa: E402
 TARGET_T      = 32    # frames expected by the model
 
 BUFFER_MAX     = 64   # max frames kept in the sliding window
-PRED_STRIDE    = 16   # run inference every N new frames (once buffer is full enough)
+PRED_STRIDE    = 64   # run inference every N new frames (once buffer is full enough)
 MIN_FRAMES     = TARGET_T
-CONF_THRESHOLD = 0.40
+CONF_THRESHOLD = 0.60
 
 VOTE_WINDOW    = 7    # majority vote over last N raw predictions
 GRACE_FRAMES   = 12   # frames to wait before clearing buffer when hands disappear

@@ -1,3 +1,0 @@
-Ce prompt concerne l'approche tcn et seulement l'approche tcn. Un des problèmes majeurs est le manque de données et le déséquilibre des classes, j'ai donc créé un fichier @src/notebooks/01_tcn_preprocessing.ipynb qui est consacré à faire de l'augmentation de donnée. 
-Les fichiers @document/Benchmarking_Data.pdf, @document/handcraft.pdf et @document/Local_globaldataaugmentation.pdf sont des papiers de recherche sur de la data augmentations concernant le langages des signes.
-Peux tu mettre faire le fichier @src/notebooks/01_tcn_preprocessing.ipynb en prenant les techniques présentes dans les papiers scientifique et sauvegarde le dataset augmenter dans un nouveau dossier, pas dans le dossier poses.

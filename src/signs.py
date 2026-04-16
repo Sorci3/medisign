@@ -10,18 +10,19 @@ Catégories :
     Besoin vital  : MANGER, BOIRE, DORMIR
     Mobilité      : MARCHER, TOMBER
     Symptôme      : CHAUD, FROID, SOUFFRIR, PLEURER
-    État          : PEUR, ENCEINTE
+    État          : PEUR, 
     Corps         : TETE
     Médical       : HOPITAL, MEDECIN
 """
 
 SIGNS_TARGET = [
     "OUI",      "NON",      "APPELER",  "VITE",     "MANGER",
-    "AIDER",    "BOIRE",    "MARCHER",  "CHAUD",    "DORMIR",
-    "RESPIRER",   "PLEURER",  "FROID",    "PEUR",     "ENCEINTE",
-    "HOPITAL",  "SOUFFRIR", "TETE",     "MORT",     "MEDECIN",
+    "COMPRENDRE",    "BOIRE",    "MALADE.VENTRE",  "CHAUD",    "DORMIR",
+    "RESPIRER",   "TOMBER",  "FROID",    "FAIBLE",     "ENCEINTE",
+    "HOPITAL",  "SOUFFRIR", "PAS.SOUFFLER",     "FORT",     "MEDECIN",
 ]
 
 SIGN_TO_IDX = {s: i for i, s in enumerate(SIGNS_TARGET)}
 IDX_TO_SIGN = {i: s for i, s in enumerate(SIGNS_TARGET)}
 NUM_CLASSES = len(SIGNS_TARGET)
+
