@@ -1,0 +1,12 @@
+{
+  "max_len": 368,
+  "n_classes": 20,
+  "feature_size": 225,
+  "hidden_dim": 64,
+  "nhead": 4,
+  "num_encoder_layers": 6,
+  "num_decoder_layers": 6,
+  "dim_feedforward": 256,
+  "dropout": 0.3,
+  "test_accuracy": 0.759075907590759
+}
