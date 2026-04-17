@@ -64,7 +64,7 @@ def step_download():
         dataset="isol", destination=DATASET, splits=["all"],
         include_videos=False, include_cleaned_poses=False,
         include_raw_poses=False, skip_existing_files=True,
-        landmarks=["pose", "left_hand", "right_hand"],  # face inutile (FEATURE_SIZE=225)
+        landmarks=["pose", "left_hand", "right_hand"],
     )
     downloader.download()  # télécharge les métadonnées (splits JSON)
 
@@ -172,8 +172,8 @@ def step_landmarks():
 
 def step_pretrain_download(min_instances=50):
     """
-    Télécharge les poses de tout le dataset LSFB (452 classes, ~60k instances)
-    nécessaires au pré-entraînement. Filtre les signes avec moins de min_instances.
+    Télécharge les poses de tout le dataset LSFB nécessaires au pré-entraînement.
+    Filtre les signes avec moins de min_instances.
     """
     csv_path = os.path.join(DATASET, "instances.csv")
     if not os.path.exists(csv_path):
@@ -181,6 +181,7 @@ def step_pretrain_download(min_instances=50):
         return
 
     df     = pd.read_csv(csv_path)
+    df     = df[~df["sign"].isin(SIGNS)].copy()   # exclut les 20 signes médicaux
     counts = df["sign"].value_counts()
     df     = df[df["sign"].isin(counts[counts >= min_instances].index)].reset_index(drop=True)
     all_ids = set(df["id"].tolist())
@@ -227,6 +228,7 @@ def step_pretrain_landmarks(min_instances=50):
         return
 
     df     = pd.read_csv(csv_path)
+    df     = df[~df["sign"].isin(SIGNS)].copy()   # exclut les 20 signes médicaux
     counts = df["sign"].value_counts()
     df     = df[df["sign"].isin(counts[counts >= min_instances].index)].reset_index(drop=True)
     print(f"Instances a traiter : {len(df)} ({df['sign'].nunique()} signes, seuil >= {min_instances})")

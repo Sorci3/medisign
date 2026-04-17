@@ -121,7 +121,11 @@ def main():
     patience  = CFG["pretrain"]["patience"]
 
     # ── Sélection des signes avec assez d'instances ───────────────────────────
+    index_csv     = os.path.join(DATASET, "index.csv")
+    medical_signs = set(pd.read_csv(index_csv)["sign"]) if os.path.exists(index_csv) else set()
+
     df     = pd.read_csv(INSTANCES_CSV)
+    df     = df[~df["sign"].isin(medical_signs)].copy()   # exclut les signes du fine-tuning
     counts = df["sign"].value_counts()
     df     = df[df["sign"].isin(counts[counts >= MIN_INSTANCES].index)].copy()
 
