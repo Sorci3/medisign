@@ -162,11 +162,11 @@ One constraint to know before you start: the LSFB corpus is non-commercial, so a
 
 Built by five AI students.
 
-| Name | GitHub |
-|---|---|
+| GitHub |
+|---|
 | [@Sorci3](https://github.com/Sorci3) |
 | [@matili0](https://github.com/matili0) AKA Herbreteau Mathis|
-| [@Gobx1](https://github.com/Gobx1) |
+| [@Gobx1](https://github.com/Gobx1) AKA Bonneau Axel|
 | [@MamatorHack](https://github.com/MamatorHack) |
 | Louis Maillet |
 
